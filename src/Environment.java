@@ -59,8 +59,39 @@ public class Environment {
 
     public void checkCollisions(Player player, List<Zombie> zombies) {
         // Check player collision with environment
+        // Clamp player to the tile grid bounds (first/last tile columns/rows)
+        if (collisionTiles != null && collisionTiles.length > 0) {
+            int cols = collisionTiles[0].length;
+            int rows = collisionTiles.length;
+            float minX = 0f;
+            float minY = 0f;
+            float maxX = cols * tileSize - player.getWidth();
+            float maxY = rows * tileSize - player.getHeight();
+
+            if (player.getX() < minX) player.setX(minX);
+            if (player.getY() < minY) player.setY(minY);
+            if (player.getX() > maxX) player.setX(maxX);
+            if (player.getY() > maxY) player.setY(maxY);
+        } else {
+            if (player.getX() < 0) player.setX(0);
+            if (player.getY() < 0) player.setY(0);
+            if (player.getX() + player.getWidth() > width) player.setX(width - player.getWidth());
+            if (player.getY() + player.getHeight() > height) player.setY(height - player.getHeight());
+        }
+
+        // If player is inside a non-walkable tile, try to nudge them back inside walkable area
         if (!isWalkable(player.getX(), player.getY())) {
-            // Push player back
+            int tileX = (int) (player.getX() / tileSize);
+            int tileY = (int) (player.getY() / tileSize);
+            // If player is outside the valid tile range, snap them to the nearest valid tile edge
+            if (collisionTiles != null && collisionTiles.length > 0) {
+                int cols = collisionTiles[0].length;
+                int rows = collisionTiles.length;
+                if (tileX < 0) player.setX(0);
+                if (tileY < 0) player.setY(0);
+                if (tileX >= cols) player.setX((cols - 1) * tileSize - player.getWidth());
+                if (tileY >= rows) player.setY((rows - 1) * tileSize - player.getHeight());
+            }
         }
 
         // Check zombie collisions with player
@@ -75,8 +106,31 @@ public class Environment {
 
         // Check zombie collisions with environment
         for (Zombie zombie : zombies) {
+            // Clamp zombies to the tile grid bounds as well
+            if (collisionTiles != null && collisionTiles.length > 0) {
+                int cols = collisionTiles[0].length;
+                int rows = collisionTiles.length;
+                float maxXz = cols * tileSize - zombie.getWidth();
+                float maxYz = rows * tileSize - zombie.getHeight();
+                if (zombie.getX() < 0) zombie.setX(0);
+                if (zombie.getY() < 0) zombie.setY(0);
+                if (zombie.getX() > maxXz) zombie.setX(maxXz);
+                if (zombie.getY() > maxYz) zombie.setY(maxYz);
+            } else {
+                if (zombie.getX() < 0) zombie.setX(0);
+                if (zombie.getY() < 0) zombie.setY(0);
+                if (zombie.getX() + zombie.getWidth() > width) zombie.setX(width - zombie.getWidth());
+                if (zombie.getY() + zombie.getHeight() > height) zombie.setY(height - zombie.getHeight());
+            }
+
             if (!isWalkable(zombie.getX(), zombie.getY())) {
-                // Push zombie back
+                // Simple fallback: move zombie one tile toward center
+                float centerX = width / 2f;
+                float centerY = height / 2f;
+                if (zombie.getX() < centerX) zombie.setX(zombie.getX() - tileSize);
+                else zombie.setX(zombie.getX() + tileSize);
+                if (zombie.getY() < centerY) zombie.setY(zombie.getY() - tileSize);
+                else zombie.setY(zombie.getY() + tileSize);
             }
         }
     }
@@ -126,5 +180,22 @@ public class Environment {
 
     public int getTileSize() {
         return tileSize;
+    }
+
+    // Ensure the outermost tiles are marked as non-walkable (border)
+    public void ensureBorders() {
+        if (collisionTiles == null) return;
+        int rows = collisionTiles.length;
+        if (rows == 0) return;
+        int cols = collisionTiles[0].length;
+
+        for (int x = 0; x < cols; x++) {
+            collisionTiles[0][x] = 1;
+            collisionTiles[rows - 1][x] = 1;
+        }
+        for (int y = 0; y < rows; y++) {
+            collisionTiles[y][0] = 1;
+            collisionTiles[y][cols - 1] = 1;
+        }
     }
 }

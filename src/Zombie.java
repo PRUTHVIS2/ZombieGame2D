@@ -22,7 +22,7 @@ public class Zombie extends Character {
         this.detectionRange = 300; // pixels
     }
 
-    public void updateAI(Player player, Environment environment) {
+    public void updateAI(Player player, Environment environment, float dt) {
         if (!alive) return;
 
         this.targetPlayer = player;
@@ -38,9 +38,36 @@ public class Zombie extends Character {
             float distance = (float) Math.sqrt(dirX * dirX + dirY * dirY);
 
             if (distance > 0) {
-                velocityX = (dirX / distance) * speed;
-                velocityY = (dirY / distance) * speed;
-                state = "moving";
+                float vx = (dirX / distance) * speed;
+                float vy = (dirY / distance) * speed;
+
+                // Predict next position and check walkability
+                float nextX = x + vx * dt;
+                float nextY = y + vy * dt;
+                boolean canMoveDiag = environment.isWalkable(nextX, nextY);
+                if (canMoveDiag) {
+                    velocityX = vx;
+                    velocityY = vy;
+                    state = "moving";
+                } else {
+                    // Try moving only in X or only in Y as fallback for smoother navigation
+                    boolean canMoveX = environment.isWalkable(x + vx * dt, y);
+                    boolean canMoveY = environment.isWalkable(x, y + vy * dt);
+                    if (canMoveX) {
+                        velocityX = vx;
+                        velocityY = 0;
+                        state = "moving";
+                    } else if (canMoveY) {
+                        velocityX = 0;
+                        velocityY = vy;
+                        state = "moving";
+                    } else {
+                        // Cannot move towards player due to obstacle; stop and optionally pathfind later
+                        velocityX = 0;
+                        velocityY = 0;
+                        state = "idle";
+                    }
+                }
 
                 // Check if in attack range
                 if (distanceToPlayer < 50) {

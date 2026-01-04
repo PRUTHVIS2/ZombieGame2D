@@ -54,6 +54,8 @@ public class Game {
                 }
             }
             environment.setCollisionTiles(finalGrid);
+            // Always enforce map borders so player cannot leave the window
+            environment.ensureBorders();
         } catch (Exception e) {
             // Fallback - initialize simple border collisions
             initializeEnvironmentCollisions(environment);
@@ -86,8 +88,8 @@ public class Game {
     private void initializeEnvironmentCollisions(Environment environment) {
         // Initialize collision map - simple border walls
         int[][] collisionTiles = environment.getCollisionTiles();
-        int mapWidth = environment.getWidth() / 32;
-        int mapHeight = environment.getHeight() / 32;
+        int mapWidth = environment.getWidth() / environment.getTileSize();
+        int mapHeight = environment.getHeight() / environment.getTileSize();
 
         // Create border walls
         for (int x = 0; x < mapWidth; x++) {
@@ -98,6 +100,8 @@ public class Game {
             collisionTiles[y][0] = 1; // Left wall
             collisionTiles[y][mapWidth - 1] = 1; // Right wall
         }
+        // Also ensure borders are set (defensive)
+        environment.ensureBorders();
     }
 
     public void gameLoop() {

@@ -50,7 +50,7 @@ public class Level {
         for (int i = 0; i < zombies.size(); i++) {
             Zombie zombie = zombies.get(i);
             if (zombie.isAlive()) {
-                zombie.updateAI(player, environment);
+                zombie.updateAI(player, environment, dt);
                 zombie.update(dt);
             } else {
                 zombies.remove(i);
