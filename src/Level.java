@@ -4,6 +4,7 @@ import java.util.List;
 public class Level {
     private int id;
     private Environment environment;
+    private TileMap tileMap;
     private Player player;
     private List<Zombie> zombies;
     private Pathfinder pathfinder;
@@ -26,6 +27,14 @@ public class Level {
         this.zombiesRequired = 10; // Zombies to defeat per wave
         this.levelComplete = false;
         this.wave = 1;
+    }
+
+    public TileMap getTileMap() {
+        return tileMap;
+    }
+
+    public void setTileMap(TileMap tileMap) {
+        this.tileMap = tileMap;
     }
 
     public void update(float dt) {

@@ -124,6 +124,13 @@ public class GamePanel extends JPanel {
             g.drawLine(0, y, getWidth(), y);
         }
 
+        // Draw tile map (if present)
+        TileMap tileMap = null;
+        if (level != null) tileMap = level.getTileMap();
+        if (tileMap != null) {
+            tileMap.render(g, 0, 0);
+        }
+
         // Draw zombies first (background layer)
         for (Zombie zombie : level.getZombies()) {
             if (zombie.isAlive()) {

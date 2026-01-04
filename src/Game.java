@@ -36,7 +36,28 @@ public class Game {
     public void startNewGame() {
         // Create environment
         Environment environment = new Environment(windowWidth, windowHeight, 32);
-        initializeEnvironmentCollisions(environment);
+        // Try to load a tile map from assets/maps/map1.txt. Falls back to simple border collisions.
+        TileMap tileMap = new TileMap(environment.getTileSize());
+        try {
+            tileMap.loadMap("assets/maps/map1.txt");
+
+            // Ensure collision grid matches environment dimensions (pad/crop as needed)
+            int[][] envGrid = environment.getCollisionTiles();
+            int envRows = envGrid.length;
+            int envCols = envGrid[0].length;
+            int[][] mapGrid = tileMap.getCollisionGrid();
+            int[][] finalGrid = new int[envRows][envCols];
+            for (int r = 0; r < envRows; r++) {
+                for (int c = 0; c < envCols; c++) {
+                    if (r < mapGrid.length && c < mapGrid[0].length) finalGrid[r][c] = mapGrid[r][c];
+                    else finalGrid[r][c] = 0;
+                }
+            }
+            environment.setCollisionTiles(finalGrid);
+        } catch (Exception e) {
+            // Fallback - initialize simple border collisions
+            initializeEnvironmentCollisions(environment);
+        }
 
         // Create player
         Player player = new Player(windowWidth / 2, windowHeight / 2, 32, 32, 100, 3);
@@ -51,6 +72,7 @@ public class Game {
 
         // Create level
         currentLevel = new Level(1, environment, player);
+        currentLevel.setTileMap(tileMap);
 
         // Setup UI
         ui.setPlayer(player);
