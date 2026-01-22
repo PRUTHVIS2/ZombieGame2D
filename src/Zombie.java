@@ -1,15 +1,25 @@
 import java.util.List;
 import java.util.ArrayList;
+import java.awt.Point;
 
 public class Zombie extends Character {
     private float speed;
     private int attackDamage;
-    private List<Integer> path; // Path for pathfinding (node indices)
+    private List<Point> path; // Path for pathfinding (Points)
+    private int pathIndex; // Current index in the path
     private String state; // idle, moving, attacking
     private float attackCooldown;
     private float attackTimer;
     private float detectionRange;
     private Player targetPlayer;
+    private Pathfinder pathfinder;
+    private float pathfindingTimer; // Timer for periodic pathfinding
+    private static final float PATHFINDING_UPDATE_INTERVAL = 0.5f; // Update path every 0.5 seconds
+    private static final int TILE_SIZE = 32; // Tile size in pixels
+
+    private graphics.Animation idleAnim;
+    private graphics.Animation moveAnim;
+    private graphics.Animation attackAnim;
 
     public Zombie(float x, float y, int width, int height, int maxHp, float speed, int attackDamage) {
         super(x, y, width, height, maxHp);
@@ -17,77 +27,167 @@ public class Zombie extends Character {
         this.attackDamage = attackDamage;
         this.state = "idle";
         this.path = new ArrayList<>();
+        this.pathIndex = 0;
+        this.pathfinder = new Pathfinder();
         this.attackCooldown = 1.0f;
         this.attackTimer = 0;
-        this.detectionRange = 300; // pixels
+        this.detectionRange = 500; // pixels
+        this.pathfindingTimer = 0;
+
+        loadAnimations();
+    }
+
+    private void loadAnimations() {
+        try {
+            java.awt.image.BufferedImage sheetImage = graphics.ResourceManager
+                    .getTexture("assets/skins/zombie/zombie_sheet.png");
+            if (sheetImage != null) {
+                graphics.SpriteSheet sheet = new graphics.SpriteSheet(sheetImage);
+
+                // Idle Frames (Row 0)
+                java.awt.image.BufferedImage[] idleFrames = {
+                        sheet.crop(0, 0, 32, 32),
+                        sheet.crop(32, 0, 32, 32)
+                };
+                idleAnim = new graphics.Animation(200, idleFrames);
+
+                // Move Frames (Row 1)
+                java.awt.image.BufferedImage[] moveFrames = {
+                        sheet.crop(0, 32, 32, 32),
+                        sheet.crop(32, 32, 32, 32),
+                        sheet.crop(64, 32, 32, 32),
+                        sheet.crop(96, 32, 32, 32)
+                };
+                moveAnim = new graphics.Animation(150, moveFrames);
+
+                // Attack Frames (Row 2) - Reuse move for now if not available or make specific
+                java.awt.image.BufferedImage[] attackFrames = {
+                        sheet.crop(0, 64, 32, 32),
+                        sheet.crop(32, 64, 32, 32)
+                };
+                attackAnim = new graphics.Animation(300, attackFrames);
+
+                currentAnimation = idleAnim;
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading zombie animations: " + e.getMessage());
+        }
     }
 
     public void updateAI(Player player, Environment environment, float dt) {
-        if (!alive) return;
+        if (!alive)
+            return;
 
         this.targetPlayer = player;
         float distanceToPlayer = (float) Math.sqrt(
-            Math.pow(player.getX() - x, 2) + Math.pow(player.getY() - y, 2)
-        );
+                Math.pow(player.getX() - x, 2) + Math.pow(player.getY() - y, 2));
+
+        // Update pathfinding timer
+        pathfindingTimer -= dt;
 
         // Check if player is in range
         if (distanceToPlayer < detectionRange) {
-            // Move towards player
-            float dirX = player.getX() - x;
-            float dirY = player.getY() - y;
-            float distance = (float) Math.sqrt(dirX * dirX + dirY * dirY);
+            // If path is empty or needs updating, compute a new path
+            if (path.isEmpty() || pathfindingTimer <= 0) {
+                computePath(player, environment);
+                pathfindingTimer = PATHFINDING_UPDATE_INTERVAL;
+                pathIndex = 0;
+            }
 
-            if (distance > 0) {
-                float vx = (dirX / distance) * speed;
-                float vy = (dirY / distance) * speed;
+            // Follow the path
+            if (!path.isEmpty() && pathIndex < path.size()) {
+                Point nextNode = path.get(pathIndex);
+                float nextX = nextNode.x * TILE_SIZE + TILE_SIZE / 2;
+                float nextY = nextNode.y * TILE_SIZE + TILE_SIZE / 2;
 
-                // Predict next position and check walkability
-                float nextX = x + vx * dt;
-                float nextY = y + vy * dt;
-                boolean canMoveDiag = environment.isWalkable(nextX, nextY);
-                if (canMoveDiag) {
-                    velocityX = vx;
-                    velocityY = vy;
-                    state = "moving";
-                } else {
-                    // Try moving only in X or only in Y as fallback for smoother navigation
-                    boolean canMoveX = environment.isWalkable(x + vx * dt, y);
-                    boolean canMoveY = environment.isWalkable(x, y + vy * dt);
-                    if (canMoveX) {
+                float dirX = nextX - x;
+                float dirY = nextY - y;
+                float distance = (float) Math.sqrt(dirX * dirX + dirY * dirY);
+
+                // If reached the node, move to the next one
+                if (distance < 10) {
+                    pathIndex++;
+                    if (pathIndex >= path.size()) {
+                        pathIndex = 0;
+                        state = "idle";
+                    }
+                } else if (distance > 0) {
+                    float vx = (dirX / distance) * speed;
+                    float vy = (dirY / distance) * speed;
+
+                    // Predict next position and check walkability
+                    float nextPosX = x + vx * dt;
+                    float nextPosY = y + vy * dt;
+                    boolean canMoveDiag = environment.isWalkable(nextPosX, nextPosY);
+
+                    if (canMoveDiag) {
                         velocityX = vx;
-                        velocityY = 0;
-                        state = "moving";
-                    } else if (canMoveY) {
-                        velocityX = 0;
                         velocityY = vy;
                         state = "moving";
                     } else {
-                        // Cannot move towards player due to obstacle; stop and optionally pathfind later
-                        velocityX = 0;
-                        velocityY = 0;
-                        state = "idle";
+                        // Try moving only in X or only in Y as fallback
+                        boolean canMoveX = environment.isWalkable(x + vx * dt, y);
+                        boolean canMoveY = environment.isWalkable(x, y + vy * dt);
+                        if (canMoveX) {
+                            velocityX = vx;
+                            velocityY = 0;
+                            state = "moving";
+                        } else if (canMoveY) {
+                            velocityX = 0;
+                            velocityY = vy;
+                            state = "moving";
+                        } else {
+                            // Stuck, clear path and try again
+                            path.clear();
+                            pathIndex = 0;
+                            velocityX = 0;
+                            velocityY = 0;
+                            state = "idle";
+                        }
                     }
                 }
 
                 // Check if in attack range
                 if (distanceToPlayer < 50) {
                     state = "attacking";
+                    velocityX = 0;
+                    velocityY = 0;
                     if (attackTimer <= 0) {
                         attack(player);
                         attackTimer = attackCooldown;
                     }
                 }
+            } else {
+                state = "idle";
+                velocityX = 0;
+                velocityY = 0;
             }
         } else {
             state = "idle";
             velocityX = 0;
             velocityY = 0;
+            path.clear();
+            pathIndex = 0;
         }
     }
 
+    private void computePath(Player player, Environment environment) {
+        int[][] collisionMap = environment.getCollisionTiles();
+        if (collisionMap == null)
+            return;
+
+        Point start = new Point((int) (x / TILE_SIZE), (int) (y / TILE_SIZE));
+        Point goal = new Point((int) (player.getX() / TILE_SIZE), (int) (player.getY() / TILE_SIZE));
+
+        path = pathfinder.findPath(start, goal, collisionMap);
+    }
+
     public String findPathTo(float targetX, float targetY) {
-        // Placeholder for A* pathfinding
-        // In full implementation, would use A* algorithm
+        // Helper method to compute path to arbitrary target
+        Point start = new Point((int) (x / TILE_SIZE), (int) (y / TILE_SIZE));
+        Point goal = new Point((int) (targetX / TILE_SIZE), (int) (targetY / TILE_SIZE));
+        // Note: This would require access to environment's collision map
+        // For now, just return empty string as the main pathfinding uses computePath
         return "";
     }
 
@@ -121,11 +221,12 @@ public class Zombie extends Character {
     }
 
     public List<Integer> getPath() {
-        return path;
+        // Return empty list for compatibility
+        return new ArrayList<>();
     }
 
     public void setPath(List<Integer> path) {
-        this.path = path;
+        // For compatibility; actual path is stored as List<Point>
     }
 
     public String getState() {
@@ -146,7 +247,8 @@ public class Zombie extends Character {
 
     @Override
     public void update(float dt) {
-        if (!alive) return;
+        if (!alive)
+            return;
 
         // Update position based on velocity
         x += velocityX * dt;
@@ -154,6 +256,20 @@ public class Zombie extends Character {
 
         // Update attack timer
         attackTimer -= dt;
+
+        // Update Animation State
+        if (state.equals("attacking")) {
+            if (attackAnim != null)
+                currentAnimation = attackAnim;
+        } else if (state.equals("moving") || velocityX != 0 || velocityY != 0) {
+            if (moveAnim != null)
+                currentAnimation = moveAnim;
+        } else {
+            if (idleAnim != null)
+                currentAnimation = idleAnim;
+        }
+
+        super.update(dt);
     }
 
     @Override

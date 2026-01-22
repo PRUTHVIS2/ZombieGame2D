@@ -1,6 +1,12 @@
+import graphics.Animation;
+import java.awt.image.BufferedImage;
+
 public class Character extends Entity {
     protected int hp;
     protected int maxHp;
+    protected float speed;
+    protected BufferedImage currentFrame;
+    protected Animation currentAnimation;
 
     public Character(float x, float y, int width, int height, int maxHp) {
         super(x, y, width, height);
@@ -41,9 +47,20 @@ public class Character extends Entity {
         this.maxHp = maxHp;
     }
 
+    public BufferedImage getCurrentFrame() {
+        return currentFrame;
+    }
+
+    public void setCurrentFrame(BufferedImage frame) {
+        this.currentFrame = frame;
+    }
+
     @Override
     public void update(float dt) {
-        // Base character update logic
+        if (currentAnimation != null) {
+            currentAnimation.update();
+            currentFrame = currentAnimation.getCurrentFrame();
+        }
     }
 
     @Override

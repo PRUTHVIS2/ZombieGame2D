@@ -59,40 +59,23 @@ public class Environment {
 
     public void checkCollisions(Player player, List<Zombie> zombies) {
         // Check player collision with environment
-        // Clamp player to the tile grid bounds (first/last tile columns/rows)
-        if (collisionTiles != null && collisionTiles.length > 0) {
-            int cols = collisionTiles[0].length;
-            int rows = collisionTiles.length;
-            float minX = 0f;
-            float minY = 0f;
-            float maxX = cols * tileSize - player.getWidth();
-            float maxY = rows * tileSize - player.getHeight();
-
-            if (player.getX() < minX) player.setX(minX);
-            if (player.getY() < minY) player.setY(minY);
-            if (player.getX() > maxX) player.setX(maxX);
-            if (player.getY() > maxY) player.setY(maxY);
-        } else {
-            if (player.getX() < 0) player.setX(0);
-            if (player.getY() < 0) player.setY(0);
-            if (player.getX() + player.getWidth() > width) player.setX(width - player.getWidth());
-            if (player.getY() + player.getHeight() > height) player.setY(height - player.getHeight());
-        }
-
-        // If player is inside a non-walkable tile, try to nudge them back inside walkable area
-        if (!isWalkable(player.getX(), player.getY())) {
-            int tileX = (int) (player.getX() / tileSize);
-            int tileY = (int) (player.getY() / tileSize);
-            // If player is outside the valid tile range, snap them to the nearest valid tile edge
-            if (collisionTiles != null && collisionTiles.length > 0) {
-                int cols = collisionTiles[0].length;
-                int rows = collisionTiles.length;
-                if (tileX < 0) player.setX(0);
-                if (tileY < 0) player.setY(0);
-                if (tileX >= cols) player.setX((cols - 1) * tileSize - player.getWidth());
-                if (tileY >= rows) player.setY((rows - 1) * tileSize - player.getHeight());
-            }
-        }
+        // Clamp player to the window bounds (strict bounds check)
+        float playerX = player.getX();
+        float playerY = player.getY();
+        
+        // Ensure player stays within window bounds
+        if (playerX < 0) player.setX(0);
+        if (playerY < 0) player.setY(0);
+        if (playerX + player.getWidth() > width) player.setX(width - player.getWidth());
+        if (playerY + player.getHeight() > height) player.setY(height - player.getHeight());
+        
+        // Verify constraints again to ensure they're applied
+        playerX = player.getX();
+        playerY = player.getY();
+        if (playerX < 0) player.setX(0);
+        if (playerY < 0) player.setY(0);
+        if (playerX + player.getWidth() > width) player.setX(width - player.getWidth());
+        if (playerY + player.getHeight() > height) player.setY(height - player.getHeight());
 
         // Check zombie collisions with player
         for (Zombie zombie : zombies) {

@@ -43,7 +43,10 @@ public class Level {
         // Update environment
         environment.update(dt);
 
-        // Update player
+        // Set environment reference for player boundary checking
+        player.setEnvironment(environment);
+
+        // Update player (boundary checking happens inside player.update())
         player.update(dt);
 
         // Update zombies

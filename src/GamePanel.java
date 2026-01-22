@@ -90,7 +90,7 @@ public class GamePanel extends JPanel {
 
         // Draw menu buttons
         g.setFont(new Font("Arial", Font.PLAIN, 24));
-        String[] options = {"Start Game", "Settings", "Credits", "Exit"};
+        String[] options = { "Start Game", "Settings", "Credits", "Exit" };
         int buttonY = 200;
         int buttonHeight = 50;
         int buttonSpacing = 70;
@@ -106,11 +106,12 @@ public class GamePanel extends JPanel {
 
     private void drawGameplay(Graphics2D g) {
         Level level = game.getCurrentLevel();
-        if (level == null) return;
+        if (level == null)
+            return;
 
         // Draw environment background with gradient
         GradientPaint gradient = new GradientPaint(0, 0, new Color(30, 30, 30),
-                                                    0, getHeight(), new Color(50, 50, 50));
+                0, getHeight(), new Color(50, 50, 50));
         g.setPaint(gradient);
         g.fillRect(0, 0, getWidth(), getHeight());
 
@@ -126,7 +127,8 @@ public class GamePanel extends JPanel {
 
         // Draw tile map (if present)
         TileMap tileMap = null;
-        if (level != null) tileMap = level.getTileMap();
+        if (level != null)
+            tileMap = level.getTileMap();
         if (tileMap != null) {
             tileMap.render(g, 0, 0);
         }
@@ -152,18 +154,24 @@ public class GamePanel extends JPanel {
         int width = player.getWidth();
         int height = player.getHeight();
 
-        // Draw player body
-        g.setColor(new Color(50, 150, 255));
-        g.fillRect(x, y, width, height);
+        // Draw player
+        java.awt.image.BufferedImage frame = player.getCurrentFrame();
+        if (frame != null) {
+            g.drawImage(frame, x, y, width, height, null);
+        } else {
+            // Draw player body (fallback)
+            g.setColor(new Color(50, 150, 255));
+            g.fillRect(x, y, width, height);
 
-        // Draw player head
-        g.setColor(new Color(100, 200, 255));
-        g.fillOval(x + 5, y - 10, 22, 20);
+            // Draw player head
+            g.setColor(new Color(100, 200, 255));
+            g.fillOval(x + 5, y - 10, 22, 20);
 
-        // Draw outline
-        g.setColor(Color.CYAN);
-        g.setStroke(new BasicStroke(2));
-        g.drawRect(x, y, width, height);
+            // Draw outline
+            g.setColor(Color.CYAN);
+            g.setStroke(new BasicStroke(2));
+            g.drawRect(x, y, width, height);
+        }
 
         // Draw weapon in hand
         if (player.getCurrentWeapon() != null) {
@@ -185,23 +193,29 @@ public class GamePanel extends JPanel {
         int width = zombie.getWidth();
         int height = zombie.getHeight();
 
-        // Draw zombie body
-        g.setColor(new Color(100, 200, 100));
-        g.fillRect(x, y, width, height);
+        // Draw zombie
+        java.awt.image.BufferedImage frame = zombie.getCurrentFrame();
+        if (frame != null) {
+            g.drawImage(frame, x, y, width, height, null);
+        } else {
+            // Draw zombie body (fallback)
+            g.setColor(new Color(100, 200, 100));
+            g.fillRect(x, y, width, height);
 
-        // Draw zombie head
-        g.setColor(new Color(150, 220, 150));
-        g.fillOval(x + 5, y - 12, 22, 22);
+            // Draw zombie head
+            g.setColor(new Color(150, 220, 150));
+            g.fillOval(x + 5, y - 12, 22, 22);
 
-        // Draw eyes
-        g.setColor(Color.RED);
-        g.fillOval(x + 8, y - 8, 4, 4);
-        g.fillOval(x + 18, y - 8, 4, 4);
+            // Draw eyes
+            g.setColor(Color.RED);
+            g.fillOval(x + 8, y - 8, 4, 4);
+            g.fillOval(x + 18, y - 8, 4, 4);
 
-        // Draw outline
-        g.setColor(Color.GREEN);
-        g.setStroke(new BasicStroke(2));
-        g.drawRect(x, y, width, height);
+            // Draw outline
+            g.setColor(Color.GREEN);
+            g.setStroke(new BasicStroke(2));
+            g.drawRect(x, y, width, height);
+        }
 
         // Draw health bar above zombie
         drawEntityHealthBar(g, zombie, x, y);
@@ -340,16 +354,16 @@ public class GamePanel extends JPanel {
 
         g.setFont(new Font("Arial", Font.PLAIN, 20));
         String[] credits = {
-            "Game Design & Programming",
-            "Zombie Defense Team",
-            "",
-            "Music & Sound Effects",
-            "Sound Designer",
-            "",
-            "Special Thanks",
-            "All Players",
-            "",
-            "Press SPACE to return to menu"
+                "Game Design & Programming",
+                "Zombie Defense Team",
+                "",
+                "Music & Sound Effects",
+                "Sound Designer",
+                "",
+                "Special Thanks",
+                "All Players",
+                "",
+                "Press SPACE to return to menu"
         };
 
         int y = 150;

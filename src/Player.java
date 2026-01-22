@@ -3,15 +3,19 @@ import java.util.List;
 import java.util.Map;
 
 public class Player extends Character {
+    private graphics.Animation idleAnim;
+    private graphics.Animation walkAnim;
+
     private int lives;
-    private List<Weapon> weapons;
+    private java.util.List<Weapon> weapons;
     private Weapon currentWeapon;
-    private Map<String, Integer> ammo;
+    private java.util.Map<String, Integer> ammo;
     private UI hud;
     private float attackCooldown;
     private float attackTimer;
     private float invulnerabilityTimer;
     private static final float INVULNERABILITY_TIME = 1.0f;
+    private Environment environment;
 
     public Player(float x, float y, int width, int height, int maxHp, int lives) {
         super(x, y, width, height, maxHp);
@@ -22,6 +26,36 @@ public class Player extends Character {
         this.attackTimer = 0;
         this.invulnerabilityTimer = 0;
         this.speed = 200; // Pixels per second
+
+        loadAnimations();
+    }
+
+    private void loadAnimations() {
+        try {
+            java.awt.image.BufferedImage sheetImage = graphics.ResourceManager
+                    .getTexture("assets/skins/player/player_sheet.png");
+            if (sheetImage != null) {
+                graphics.SpriteSheet sheet = new graphics.SpriteSheet(sheetImage);
+                // Assuming 32x32 frames
+                java.awt.image.BufferedImage[] idleFrames = {
+                        sheet.crop(0, 0, 32, 32),
+                        sheet.crop(32, 0, 32, 32)
+                };
+                idleAnim = new graphics.Animation(200, idleFrames);
+
+                java.awt.image.BufferedImage[] walkFrames = {
+                        sheet.crop(0, 32, 32, 32),
+                        sheet.crop(32, 32, 32, 32),
+                        sheet.crop(64, 32, 32, 32),
+                        sheet.crop(96, 32, 32, 32)
+                };
+                walkAnim = new graphics.Animation(100, walkFrames);
+
+                currentAnimation = idleAnim;
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading player animations: " + e.getMessage());
+        }
     }
 
     public void spawn(float x, float y) {
@@ -66,7 +100,8 @@ public class Player extends Character {
 
     public void meleeAttack() {
         // Deal melee damage in a small radius
-        if (currentWeapon != null && currentWeapon.getName().contains("Sword") || currentWeapon.getName().contains("Mace")) {
+        if (currentWeapon != null && currentWeapon.getName().contains("Sword")
+                || currentWeapon.getName().contains("Mace")) {
             // Damage will be applied through collision detection
         }
     }
@@ -172,15 +207,66 @@ public class Player extends Character {
         return invulnerabilityTimer > 0;
     }
 
-    @Override
+    public void setEnvironment(Environment env) {
+        this.environment = env;
+    }
+
     public void update(float dt) {
-        // Update position
-        x += velocityX * dt;
-        y += velocityY * dt;
+        // Calculate potential new positions
+        float nextX = x + velocityX * dt;
+        float nextY = y + velocityY * dt;
+
+        if (environment != null) {
+            // Check X axis collision
+            if (canMove(nextX, y)) {
+                x = nextX;
+            }
+
+            // Check Y axis collision
+            if (canMove(x, nextY)) {
+                y = nextY;
+            }
+
+            // Keep within strict window bounds as a failsafe
+            int windowWidth = environment.getWidth();
+            int windowHeight = environment.getHeight();
+
+            if (x < 0)
+                x = 0;
+            if (y < 0)
+                y = 0;
+            if (x + width > windowWidth)
+                x = windowWidth - width;
+            if (y + height > windowHeight)
+                y = windowHeight - height;
+        } else {
+            // Fallback if no environment
+            x = nextX;
+            y = nextY;
+        }
 
         // Update cooldowns
         attackTimer -= dt;
         invulnerabilityTimer -= dt;
+
+        // Update Animation
+        if (velocityX != 0 || velocityY != 0) {
+            if (walkAnim != null)
+                currentAnimation = walkAnim;
+        } else {
+            if (idleAnim != null)
+                currentAnimation = idleAnim;
+        }
+
+        super.update(dt);
+    }
+
+    private boolean canMove(float newX, float newY) {
+        // Check all 4 corners of the player's bounding box
+        return environment.isWalkable(newX, newY) &&
+                environment.isWalkable(newX + width - 1, newY) &&
+                environment.isWalkable(newX, newY + height - 1) &&
+                environment.isWalkable(newX + width - 1, newY + height - 1);
     }
 
     @Override
