@@ -5,8 +5,13 @@ public class Character extends Entity {
     protected int hp;
     protected int maxHp;
     protected float speed;
+    protected boolean facingRight = true;
     protected BufferedImage currentFrame;
     protected Animation currentAnimation;
+
+    public boolean isFacingRight() {
+        return facingRight;
+    }
 
     public Character(float x, float y, int width, int height, int maxHp) {
         super(x, y, width, height);
@@ -71,6 +76,38 @@ public class Character extends Entity {
     @Override
     public Object getBounds() {
         // Return bounds rectangle
+        return null;
+    }
+
+    protected graphics.Animation loadAnimationFromStrip(String path, int frameCount, int speed) {
+        try {
+            java.awt.image.BufferedImage strip = graphics.ResourceManager.getTexture(path);
+            if (strip != null) {
+                // Auto-detect frame count if 0 or negative
+                if (frameCount <= 0) {
+                    if (strip.getHeight() > 0) {
+                        frameCount = strip.getWidth() / strip.getHeight();
+                    } else {
+                        frameCount = 1; // Safety fallback
+                    }
+                }
+
+                // Prevent division by zero
+                if (frameCount < 1)
+                    frameCount = 1;
+
+                int frameWidth = strip.getWidth() / frameCount;
+                int frameHeight = strip.getHeight();
+
+                java.awt.image.BufferedImage[] frames = new java.awt.image.BufferedImage[frameCount];
+                for (int i = 0; i < frameCount; i++) {
+                    frames[i] = strip.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
+                }
+                return new graphics.Animation(speed, frames);
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading animation from " + path + ": " + e.getMessage());
+        }
         return null;
     }
 }

@@ -29,14 +29,16 @@ public class Game {
         gameWindow = new GameWindow(this);
         running = true;
         ui = new UI();
-        ui.showMainMenu();
-        gameState = GameState.MENU;
+
+        // Skip menu and start game immediately
+        startNewGame();
     }
 
     public void startNewGame() {
         // Create environment
         Environment environment = new Environment(windowWidth, windowHeight, 32);
-        // Try to load a tile map from assets/maps/map1.txt. Falls back to simple border collisions.
+        // Try to load a tile map from assets/maps/map1.txt. Falls back to simple border
+        // collisions.
         TileMap tileMap = new TileMap(environment.getTileSize());
         try {
             tileMap.loadMap("assets/maps/map1.txt");
@@ -49,8 +51,10 @@ public class Game {
             int[][] finalGrid = new int[envRows][envCols];
             for (int r = 0; r < envRows; r++) {
                 for (int c = 0; c < envCols; c++) {
-                    if (r < mapGrid.length && c < mapGrid[0].length) finalGrid[r][c] = mapGrid[r][c];
-                    else finalGrid[r][c] = 0;
+                    if (r < mapGrid.length && c < mapGrid[0].length)
+                        finalGrid[r][c] = mapGrid[r][c];
+                    else
+                        finalGrid[r][c] = 0;
                 }
             }
             environment.setCollisionTiles(finalGrid);

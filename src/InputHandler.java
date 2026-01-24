@@ -58,6 +58,10 @@ public class InputHandler {
         return mousePressed;
     }
 
+    public boolean isRunning() {
+        return isKeyPressed(KeyEvent.VK_SHIFT);
+    }
+
     public float getMouseX() {
         return mouseX;
     }

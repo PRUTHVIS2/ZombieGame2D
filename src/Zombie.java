@@ -38,39 +38,22 @@ public class Zombie extends Character {
     }
 
     private void loadAnimations() {
-        try {
-            java.awt.image.BufferedImage sheetImage = graphics.ResourceManager
-                    .getTexture("assets/skins/zombie/zombie_sheet.png");
-            if (sheetImage != null) {
-                graphics.SpriteSheet sheet = new graphics.SpriteSheet(sheetImage);
+        // Use 0 as frameCount to auto-detect based on square frames (width/height)
 
-                // Idle Frames (Row 0)
-                java.awt.image.BufferedImage[] idleFrames = {
-                        sheet.crop(0, 0, 32, 32),
-                        sheet.crop(32, 0, 32, 32)
-                };
-                idleAnim = new graphics.Animation(200, idleFrames);
+        // Idle Animation (User: 768x128 => 6 frames)
+        idleAnim = loadAnimationFromStrip("assets/skins/zombie/Idle.png", 0, 200);
 
-                // Move Frames (Row 1)
-                java.awt.image.BufferedImage[] moveFrames = {
-                        sheet.crop(0, 32, 32, 32),
-                        sheet.crop(32, 32, 32, 32),
-                        sheet.crop(64, 32, 32, 32),
-                        sheet.crop(96, 32, 32, 32)
-                };
-                moveAnim = new graphics.Animation(150, moveFrames);
+        // Move Animation (Auto-detect frames)
+        moveAnim = loadAnimationFromStrip("assets/skins/zombie/Walk.png", 0, 150);
 
-                // Attack Frames (Row 2) - Reuse move for now if not available or make specific
-                java.awt.image.BufferedImage[] attackFrames = {
-                        sheet.crop(0, 64, 32, 32),
-                        sheet.crop(32, 64, 32, 32)
-                };
-                attackAnim = new graphics.Animation(300, attackFrames);
+        // Attack Animation (Auto-detect frames)
+        attackAnim = loadAnimationFromStrip("assets/skins/zombie/Attack.png", 0, 150);
 
-                currentAnimation = idleAnim;
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading zombie animations: " + e.getMessage());
+        // Initial animation
+        if (idleAnim != null) {
+            currentAnimation = idleAnim;
+        } else if (moveAnim != null) {
+            currentAnimation = moveAnim;
         }
     }
 
@@ -124,6 +107,10 @@ public class Zombie extends Character {
                         velocityX = vx;
                         velocityY = vy;
                         state = "moving";
+                        if (vx > 0)
+                            facingRight = true;
+                        if (vx < 0)
+                            facingRight = false;
                     } else {
                         // Try moving only in X or only in Y as fallback
                         boolean canMoveX = environment.isWalkable(x + vx * dt, y);
@@ -132,6 +119,10 @@ public class Zombie extends Character {
                             velocityX = vx;
                             velocityY = 0;
                             state = "moving";
+                            if (vx > 0)
+                                facingRight = true;
+                            if (vx < 0)
+                                facingRight = false;
                         } else if (canMoveY) {
                             velocityX = 0;
                             velocityY = vy;
@@ -152,6 +143,12 @@ public class Zombie extends Character {
                     state = "attacking";
                     velocityX = 0;
                     velocityY = 0;
+                    // Face player when attacking
+                    if (player.getX() > x)
+                        facingRight = true;
+                    if (player.getX() < x)
+                        facingRight = false;
+
                     if (attackTimer <= 0) {
                         attack(player);
                         attackTimer = attackCooldown;

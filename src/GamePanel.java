@@ -79,29 +79,7 @@ public class GamePanel extends JPanel {
     }
 
     private void drawMainMenu(Graphics2D g) {
-        // Draw title
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 48));
-        String title = "ZOMBIE DEFENSE";
-        FontMetrics fm = g.getFontMetrics();
-        int x = (getWidth() - fm.stringWidth(title)) / 2;
-        int y = 80;
-        g.drawString(title, x, y);
-
-        // Draw menu buttons
-        g.setFont(new Font("Arial", Font.PLAIN, 24));
-        String[] options = { "Start Game", "Settings", "Credits", "Exit" };
-        int buttonY = 200;
-        int buttonHeight = 50;
-        int buttonSpacing = 70;
-
-        for (String option : options) {
-            g.drawRect(getWidth() / 2 - 100, buttonY, 200, buttonHeight);
-            fm = g.getFontMetrics();
-            int optionX = (getWidth() - fm.stringWidth(option)) / 2;
-            g.drawString(option, optionX, buttonY + 35);
-            buttonY += buttonSpacing;
-        }
+        // Menu UI removed as requested
     }
 
     private void drawGameplay(Graphics2D g) {
@@ -154,10 +132,22 @@ public class GamePanel extends JPanel {
         int width = player.getWidth();
         int height = player.getHeight();
 
+        // Render Scale Factor
+        float scale = 2.0f;
+        int drawWidth = (int) (width * scale);
+        int drawHeight = (int) (height * scale);
+        int drawX = x + (width - drawWidth) / 2;
+        int drawY = y + (height - drawHeight) / 2;
+
         // Draw player
         java.awt.image.BufferedImage frame = player.getCurrentFrame();
         if (frame != null) {
-            g.drawImage(frame, x, y, width, height, null);
+            if (player.isFacingRight()) {
+                g.drawImage(frame, drawX, drawY, drawWidth, drawHeight, null);
+            } else {
+                // Flip horizontally: draw from x+width to x
+                g.drawImage(frame, drawX + drawWidth, drawY, -drawWidth, drawHeight, null);
+            }
         } else {
             // Draw player body (fallback)
             g.setColor(new Color(50, 150, 255));
@@ -174,17 +164,7 @@ public class GamePanel extends JPanel {
         }
 
         // Draw weapon in hand
-        if (player.getCurrentWeapon() != null) {
-            g.setColor(new Color(200, 200, 200));
-            g.drawLine(x + width, y + height / 2, x + width + 15, y + height / 2);
-        }
 
-        // Visual effect if invulnerable
-        if (player.isInvulnerable()) {
-            g.setColor(new Color(255, 255, 0, 100));
-            g.setStroke(new BasicStroke(2));
-            g.drawRect(x - 3, y - 3, width + 6, height + 6);
-        }
     }
 
     private void drawZombie(Graphics2D g, Zombie zombie) {
@@ -193,10 +173,22 @@ public class GamePanel extends JPanel {
         int width = zombie.getWidth();
         int height = zombie.getHeight();
 
+        // Render Scale Factor
+        float scale = 2.0f; // Make them look larger (64x64 if base is 32x32)
+        int drawWidth = (int) (width * scale);
+        int drawHeight = (int) (height * scale);
+        int drawX = x + (width - drawWidth) / 2;
+        int drawY = y + (height - drawHeight) / 2;
+
         // Draw zombie
         java.awt.image.BufferedImage frame = zombie.getCurrentFrame();
         if (frame != null) {
-            g.drawImage(frame, x, y, width, height, null);
+            if (zombie.isFacingRight()) {
+                g.drawImage(frame, drawX, drawY, drawWidth, drawHeight, null);
+            } else {
+                // Flip horizontally
+                g.drawImage(frame, drawX + drawWidth, drawY, -drawWidth, drawHeight, null);
+            }
         } else {
             // Draw zombie body (fallback)
             g.setColor(new Color(100, 200, 100));
@@ -217,7 +209,7 @@ public class GamePanel extends JPanel {
             g.drawRect(x, y, width, height);
         }
 
-        // Draw health bar above zombie
+        // Draw health bar above zombie - Reverted to logical Y position as requested
         drawEntityHealthBar(g, zombie, x, y);
     }
 
@@ -277,6 +269,9 @@ public class GamePanel extends JPanel {
 
         // Draw health bar
         drawHealthBar(g, player);
+
+        // Draw stamina bar
+        drawStaminaBar(g, player);
     }
 
     private void drawHealthBar(Graphics2D g, Player player) {
@@ -293,6 +288,26 @@ public class GamePanel extends JPanel {
         float healthPercent = (float) player.getHp() / player.getMaxHp();
         g.setColor(healthPercent > 0.5f ? Color.GREEN : (healthPercent > 0.25f ? Color.YELLOW : Color.RED));
         g.fillRect(x, y, (int) (barWidth * healthPercent), barHeight);
+
+        // Draw border
+        g.setColor(Color.WHITE);
+        g.drawRect(x, y, barWidth, barHeight);
+    }
+
+    private void drawStaminaBar(Graphics2D g, Player player) {
+        int barWidth = 150;
+        int barHeight = 10;
+        int x = 10;
+        int y = 145; // Below health bar
+
+        // Draw background
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(x, y, barWidth, barHeight);
+
+        // Draw stamina
+        float staminaPercent = player.getStamina() / player.getMaxStamina();
+        g.setColor(Color.CYAN);
+        g.fillRect(x, y, (int) (barWidth * staminaPercent), barHeight);
 
         // Draw border
         g.setColor(Color.WHITE);

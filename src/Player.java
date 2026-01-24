@@ -17,6 +17,16 @@ public class Player extends Character {
     private static final float INVULNERABILITY_TIME = 1.0f;
     private Environment environment;
 
+    // Stamina & Speed
+    private float walkSpeed;
+    private float runSpeed;
+    private float stamina;
+    private float maxStamina;
+    private float staminaRegen;
+    private float staminaDrain;
+    private static final float STAMINA_COOLDOWN = 1.0f;
+    private float staminaRegenTimer;
+
     public Player(float x, float y, int width, int height, int maxHp, int lives) {
         super(x, y, width, height, maxHp);
         this.lives = lives;
@@ -25,37 +35,41 @@ public class Player extends Character {
         this.attackCooldown = 0.5f;
         this.attackTimer = 0;
         this.invulnerabilityTimer = 0;
-        this.speed = 200; // Pixels per second
+
+        // Speed & Stamina Configuration
+        this.walkSpeed = 60; // Matches Zombie base speed
+        this.runSpeed = 200; // Fast sprint
+        this.speed = walkSpeed;
+
+        this.maxStamina = 100;
+        this.stamina = maxStamina;
+        this.staminaDrain = 30; // Drain per second
+        this.staminaRegen = 20; // Regen per second
+        this.staminaRegenTimer = 0;
 
         loadAnimations();
     }
 
     private void loadAnimations() {
-        try {
-            java.awt.image.BufferedImage sheetImage = graphics.ResourceManager
-                    .getTexture("assets/skins/player/player_sheet.png");
-            if (sheetImage != null) {
-                graphics.SpriteSheet sheet = new graphics.SpriteSheet(sheetImage);
-                // Assuming 32x32 frames
-                java.awt.image.BufferedImage[] idleFrames = {
-                        sheet.crop(0, 0, 32, 32),
-                        sheet.crop(32, 0, 32, 32)
-                };
-                idleAnim = new graphics.Animation(200, idleFrames);
+        // Load separate animations using inherited helper
+        // Use 0 as frameCount to auto-detect based on square frames
 
-                java.awt.image.BufferedImage[] walkFrames = {
-                        sheet.crop(0, 32, 32, 32),
-                        sheet.crop(32, 32, 32, 32),
-                        sheet.crop(64, 32, 32, 32),
-                        sheet.crop(96, 32, 32, 32)
-                };
-                walkAnim = new graphics.Animation(100, walkFrames);
+        // Idle Animation
+        idleAnim = loadAnimationFromStrip("assets/skins/player/Idle.png", 0, 200);
 
-                currentAnimation = idleAnim;
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading player animations: " + e.getMessage());
+        // Walk/Run Animation
+        // Prefer Run.png since base speed is 200
+        walkAnim = loadAnimationFromStrip("assets/skins/player/Run.png", 0, 100);
+        if (walkAnim == null) {
+            walkAnim = loadAnimationFromStrip("assets/skins/player/Walk.png", 0, 100);
         }
+
+        // Fallback for walk if not present
+        if (walkAnim == null && idleAnim != null) {
+            walkAnim = idleAnim;
+        }
+
+        currentAnimation = idleAnim;
     }
 
     public void spawn(float x, float y) {
@@ -71,6 +85,27 @@ public class Player extends Character {
         velocityX = 0;
         velocityY = 0;
 
+        // Handle Running
+        boolean isRunning = input.isRunning()
+                && (input.isMovingUp() || input.isMovingDown() || input.isMovingLeft() || input.isMovingRight());
+
+        if (isRunning && stamina > 0) {
+            speed = runSpeed;
+            stamina -= staminaDrain * (1.0f / 60.0f); // Approx dt
+            staminaRegenTimer = STAMINA_COOLDOWN;
+            if (stamina < 0)
+                stamina = 0;
+        } else {
+            speed = walkSpeed;
+            if (staminaRegenTimer > 0) {
+                staminaRegenTimer -= (1.0f / 60.0f);
+            } else if (stamina < maxStamina) {
+                stamina += staminaRegen * (1.0f / 60.0f);
+                if (stamina > maxStamina)
+                    stamina = maxStamina;
+            }
+        }
+
         // Handle movement (WASD)
         if (input.isMovingUp()) {
             velocityY = -speed;
@@ -80,9 +115,20 @@ public class Player extends Character {
         }
         if (input.isMovingLeft()) {
             velocityX = -speed;
+            facingRight = false;
         }
         if (input.isMovingRight()) {
             velocityX = speed;
+            facingRight = true;
+        }
+
+        // Update Animation State
+        if (idleAnim != null && velocityX == 0 && velocityY == 0) {
+            currentAnimation = idleAnim;
+        } else if (speed == runSpeed && walkAnim != null) {
+            currentAnimation = walkAnim;
+        } else if (walkAnim != null) {
+            currentAnimation = walkAnim;
         }
 
         // Handle attacks
@@ -90,6 +136,14 @@ public class Player extends Character {
             attack(input.getMouseX(), input.getMouseY());
             attackTimer = attackCooldown;
         }
+    }
+
+    public float getStamina() {
+        return stamina;
+    }
+
+    public float getMaxStamina() {
+        return maxStamina;
     }
 
     public void attack(float targetX, float targetY) {
