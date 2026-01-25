@@ -58,6 +58,14 @@ public class InputHandler {
         return mousePressed;
     }
 
+    public boolean isSwitchingToMelee() {
+        return isKeyPressed(KeyEvent.VK_1);
+    }
+
+    public boolean isSwitchingToRanged() {
+        return isKeyPressed(KeyEvent.VK_2);
+    }
+
     public boolean isRunning() {
         return isKeyPressed(KeyEvent.VK_SHIFT);
     }

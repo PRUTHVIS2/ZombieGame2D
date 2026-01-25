@@ -69,16 +69,20 @@ public class Game {
         Player player = new Player(windowWidth / 2, windowHeight / 2, 32, 32, 100, 3);
 
         // Add weapons to player
-        MeleeWeapon sword = new MeleeWeapon("Sword", 15, 0.5f, 50);
-        RangedWeapon flamethrower = new RangedWeapon("Flamethrower", 20, 0.8f, "fuel", 1, 200);
-        player.addWeapon(sword);
-        player.addWeapon(flamethrower);
-        player.setCurrentWeapon(sword);
-        player.setAmmo("fuel", 100);
+        MeleeWeapon melee = new MeleeWeapon("Melee", 15, 0.5f, 50);
+        // Infinite range (handled by logic), speed 500
+        RangedWeapon gun = new RangedWeapon("Gun", 20, 0.2f, "bullet", 1, 500);
+        player.addWeapon(melee);
+        player.addWeapon(gun);
+        player.setCurrentWeapon(melee);
+        player.setAmmo("bullet", 10); // Limit 10 per wave as requested
 
         // Create level
         currentLevel = new Level(1, environment, player);
         currentLevel.setTileMap(tileMap);
+
+        // Link player to level
+        player.setLevel(currentLevel);
 
         // Setup UI
         ui.setPlayer(player);
@@ -183,9 +187,10 @@ public class Game {
             // Check level complete
             if (currentLevel.isLevelComplete() && currentLevel.getZombies().isEmpty()) {
                 if (player.getLives() > 0) {
-                    // Next wave or level complete
-                    // For now, restart current level
-                    startNewGame();
+                    // Next wave
+                    currentLevel.startNextWave();
+                    // Refill ammo (limit 10 per wave)
+                    player.setAmmo("bullet", 10);
                 }
             }
         }

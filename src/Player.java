@@ -5,6 +5,9 @@ import java.util.Map;
 public class Player extends Character {
     private graphics.Animation idleAnim;
     private graphics.Animation walkAnim;
+    private graphics.Animation attackAnim;
+    private graphics.Animation shootAnim;
+    private graphics.Animation hurtAnim;
 
     private int lives;
     private java.util.List<Weapon> weapons;
@@ -69,6 +72,24 @@ public class Player extends Character {
             walkAnim = idleAnim;
         }
 
+        // Attack Animation
+        attackAnim = loadAnimationFromStrip("assets/skins/player/Attack_1.png", 0, 100);
+        if (attackAnim != null) {
+            attackAnim.setLooping(false);
+        }
+
+        // Shoot Animation
+        shootAnim = loadAnimationFromStrip("assets/skins/player/Shot.png", 0, 100);
+        if (shootAnim != null) {
+            shootAnim.setLooping(false);
+        }
+
+        // Hurt Animation
+        hurtAnim = loadAnimationFromStrip("assets/skins/zombie/Hurt.png", 0, 100);
+        if (hurtAnim != null) {
+            hurtAnim.setLooping(false);
+        }
+
         currentAnimation = idleAnim;
     }
 
@@ -80,7 +101,31 @@ public class Player extends Character {
         this.invulnerabilityTimer = INVULNERABILITY_TIME;
     }
 
+    private Level level;
+
+    public void setLevel(Level level) {
+        this.level = level;
+    }
+
     public void handleInput(InputHandler input) {
+        // Weapon Switching
+        if (input.isSwitchingToMelee()) {
+            for (Weapon w : weapons) {
+                if (w.getType().equals("melee")) {
+                    setCurrentWeapon(w);
+                    break;
+                }
+            }
+        }
+        if (input.isSwitchingToRanged()) {
+            for (Weapon w : weapons) {
+                if (w.getType().equals("ranged")) {
+                    setCurrentWeapon(w);
+                    break;
+                }
+            }
+        }
+
         // Reset velocity
         velocityX = 0;
         velocityY = 0;
@@ -123,15 +168,31 @@ public class Player extends Character {
         }
 
         // Update Animation State
-        if (idleAnim != null && velocityX == 0 && velocityY == 0) {
-            currentAnimation = idleAnim;
-        } else if (speed == runSpeed && walkAnim != null) {
-            currentAnimation = walkAnim;
-        } else if (walkAnim != null) {
-            currentAnimation = walkAnim;
+        boolean isAttacking = (currentAnimation == attackAnim && attackAnim != null && !attackAnim.isFinished()) ||
+                (currentAnimation == shootAnim && shootAnim != null && !shootAnim.isFinished());
+        boolean isHurting = (currentAnimation == hurtAnim && hurtAnim != null && !hurtAnim.isFinished());
+
+        if (!isAttacking && !isHurting) {
+            if (idleAnim != null && velocityX == 0 && velocityY == 0) {
+                currentAnimation = idleAnim;
+            } else if (speed == runSpeed && walkAnim != null) {
+                currentAnimation = walkAnim;
+            } else if (walkAnim != null) {
+                currentAnimation = walkAnim;
+            }
+        }
+
+        // Update facing direction based on mouse if attacking or holding gun
+        // Or just always face mouse for better feel as requested
+        if (input.getMouseX() > x + width / 2) {
+            facingRight = true;
+        } else {
+            facingRight = false;
         }
 
         // Handle attacks
+        aimX = input.getMouseX();
+        aimY = input.getMouseY();
         if (input.isAttacking() && attackTimer <= 0) {
             attack(input.getMouseX(), input.getMouseY());
             attackTimer = attackCooldown;
@@ -148,7 +209,21 @@ public class Player extends Character {
 
     public void attack(float targetX, float targetY) {
         if (currentWeapon != null) {
-            currentWeapon.attack(this, null);
+            currentWeapon.attack(this, targetX, targetY, level);
+
+            // Trigger Animation
+            graphics.Animation animToPlay = null;
+            if (currentWeapon.getType() != null
+                    && (currentWeapon.getType().equals("melee") || currentWeapon.getName().contains("Sword"))) {
+                animToPlay = attackAnim;
+            } else {
+                animToPlay = shootAnim;
+            }
+
+            if (animToPlay != null) {
+                currentAnimation = animToPlay;
+                currentAnimation.reset();
+            }
         }
     }
 
@@ -191,6 +266,13 @@ public class Player extends Character {
                 hp = 0;
             }
             invulnerabilityTimer = INVULNERABILITY_TIME;
+
+            // Trigger Hurt Animation
+            if (hurtAnim != null) {
+                currentAnimation = hurtAnim;
+                currentAnimation.reset();
+            }
+
             if (hp <= 0) {
                 die();
             }
@@ -303,15 +385,6 @@ public class Player extends Character {
         attackTimer -= dt;
         invulnerabilityTimer -= dt;
 
-        // Update Animation
-        if (velocityX != 0 || velocityY != 0) {
-            if (walkAnim != null)
-                currentAnimation = walkAnim;
-        } else {
-            if (idleAnim != null)
-                currentAnimation = idleAnim;
-        }
-
         super.update(dt);
     }
 
@@ -323,10 +396,24 @@ public class Player extends Character {
                 environment.isWalkable(newX + width - 1, newY + height - 1);
     }
 
+    private float aimX, aimY;
+
     @Override
     public void render(Object g) {
-        // Render player sprite
-        // Can add visual feedback for invulnerability (blinking)
+        // Base character render logic
+        super.render(g); // Renders the sprite
+
+        // Render Aim Line
+        if (g instanceof java.awt.Graphics2D && alive) {
+            java.awt.Graphics2D g2d = (java.awt.Graphics2D) g;
+            java.awt.Stroke oldStroke = g2d.getStroke();
+            g2d.setColor(java.awt.Color.RED);
+            // Dotted line
+            g2d.setStroke(new java.awt.BasicStroke(1, java.awt.BasicStroke.CAP_BUTT, java.awt.BasicStroke.JOIN_BEVEL, 0,
+                    new float[] { 9 }, 0));
+            g2d.drawLine((int) (x + width / 2), (int) (y + height / 2), (int) aimX, (int) aimY);
+            g2d.setStroke(oldStroke);
+        }
     }
 
     @Override

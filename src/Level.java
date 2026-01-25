@@ -38,7 +38,8 @@ public class Level {
     }
 
     public void update(float dt) {
-        if (levelComplete) return;
+        if (levelComplete)
+            return;
 
         // Update environment
         environment.update(dt);
@@ -64,6 +65,10 @@ public class Level {
         // Check collisions
         environment.checkCollisions(player, zombies);
 
+        // Update and check projectiles
+        updateProjectiles(dt);
+        checkProjectileCollisions();
+
         // Spawn zombies
         zombieSpawnTimer -= dt;
         if (zombieSpawnTimer <= 0 && zombiesSpawned < zombiesRequired) {
@@ -86,6 +91,9 @@ public class Level {
 
     public void render(Object g) {
         environment.render(g);
+        for (Projectile p : projectiles) {
+            p.render(g);
+        }
         player.render(g);
         for (Zombie zombie : zombies) {
             if (zombie.isAlive()) {
@@ -129,6 +137,12 @@ public class Level {
         levelComplete = true;
     }
 
+    public void startNextWave() {
+        levelComplete = false;
+        // wave is already incremented in completeLevel
+        // parameters are already reset in completeLevel
+    }
+
     public int getId() {
         return id;
     }
@@ -163,6 +177,56 @@ public class Level {
 
     public void removeZombie(Zombie zombie) {
         zombies.remove(zombie);
+    }
+
+    // Projectile Management
+    private List<Projectile> projectiles = new ArrayList<>();
+
+    public void addProjectile(Projectile p) {
+        projectiles.add(p);
+    }
+
+    public List<Projectile> getProjectiles() {
+        return projectiles;
+    }
+
+    private void updateProjectiles(float dt) {
+        for (int i = 0; i < projectiles.size(); i++) {
+            Projectile p = projectiles.get(i);
+            p.update(dt);
+
+            // Wall collision
+            if (!environment.isWalkable(p.getX(), p.getY())) {
+                p.setActive(false);
+            }
+
+            if (!p.isActive()) {
+                projectiles.remove(i);
+                i--;
+            }
+        }
+    }
+
+    private void checkProjectileCollisions() {
+        for (int i = 0; i < projectiles.size(); i++) {
+            Projectile p = projectiles.get(i);
+            if (!p.isActive())
+                continue;
+
+            // Check collision with zombies
+            for (Zombie z : zombies) {
+                if (z.isAlive() && z.getBounds() instanceof Rectangle && p.getBounds() instanceof Rectangle) {
+                    Rectangle pRect = (Rectangle) p.getBounds();
+                    Rectangle zRect = (Rectangle) z.getBounds();
+
+                    if (pRect.intersects(zRect)) {
+                        z.takeDamage(p.getDamage());
+                        p.setActive(false);
+                        break; // One bullet hits one zombie (for now)
+                    }
+                }
+            }
+        }
     }
 
     public boolean isLevelComplete() {
