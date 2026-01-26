@@ -120,12 +120,22 @@ public class Level {
             spawnY = (float) (Math.random() * environment.getHeight());
         }
 
-        // Create zombie with increasing difficulty per wave
-        int hp = 20 + (wave - 1) * 5;
-        float speed = 50 + (wave - 1) * 10;
-        int damage = 10 + (wave - 1) * 2;
+        Zombie zombie;
+        if (wave == 5) {
+            // Spawn BOSS
+            // Boss stats: high HP, slower speed but huge, high damage
+            int hp = 1000;
+            float speed = 90;
+            int damage = 35;
+            zombie = new Boss(spawnX, spawnY, hp, speed, damage);
+        } else {
+            // Create zombie with increasing difficulty per wave
+            int hp = 20 + (wave - 1) * 5;
+            float speed = 50 + (wave - 1) * 10;
+            int damage = 10 + (wave - 1) * 2;
+            zombie = new Zombie(spawnX, spawnY, 32, 32, hp, speed, damage);
+        }
 
-        Zombie zombie = new Zombie(spawnX, spawnY, 32, 32, hp, speed, damage);
         zombies.add(zombie);
         zombiesSpawned++;
     }
@@ -136,7 +146,12 @@ public class Level {
         // Reset for next wave
         zombiesSpawned = 0;
         zombieSpawnTimer = 0;
-        zombiesRequired = 10 + (wave - 1) * 5; // More zombies each wave
+
+        if (wave == 5) {
+            zombiesRequired = 1; // Only 1 boss
+        } else {
+            zombiesRequired = 10 + (wave - 1) * 5; // More zombies each wave
+        }
     }
 
     public void gameOver() {

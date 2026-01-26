@@ -3,25 +3,25 @@ import java.util.ArrayList;
 import java.awt.Point;
 
 public class Zombie extends Character {
-    private float speed;
-    private int attackDamage;
-    private List<Point> path; // Path for pathfinding (Points)
-    private int pathIndex; // Current index in the path
-    private String state; // idle, moving, attacking
-    private float attackCooldown;
-    private float attackTimer;
-    private float detectionRange;
-    private Player targetPlayer;
+    protected float speed;
+    protected int attackDamage;
+    protected List<Point> path; // Path for pathfinding (Points)
+    protected int pathIndex; // Current index in the path
+    protected String state; // idle, moving, attacking
+    protected float attackCooldown;
+    protected float attackTimer;
+    protected float detectionRange;
+    protected Player targetPlayer;
     private Pathfinder pathfinder;
     private float pathfindingTimer; // Timer for periodic pathfinding
     private static final float PATHFINDING_UPDATE_INTERVAL = 0.5f; // Update path every 0.5 seconds
     private static final int TILE_SIZE = 32; // Tile size in pixels
 
-    private graphics.Animation idleAnim;
-    private graphics.Animation moveAnim;
-    private graphics.Animation attackAnim;
-    private graphics.Animation hurtAnim;
-    private graphics.Animation deadAnim;
+    protected graphics.Animation idleAnim;
+    protected graphics.Animation moveAnim;
+    protected graphics.Animation attackAnim;
+    protected graphics.Animation hurtAnim;
+    protected graphics.Animation deadAnim;
 
     public Zombie(float x, float y, int width, int height, int maxHp, float speed, int attackDamage) {
         super(x, y, width, height, maxHp);
@@ -39,7 +39,7 @@ public class Zombie extends Character {
         loadAnimations();
     }
 
-    private void loadAnimations() {
+    protected void loadAnimations() {
         // Use 0 as frameCount to auto-detect based on square frames (width/height)
 
         // Idle Animation (User: 768x128 => 6 frames)
