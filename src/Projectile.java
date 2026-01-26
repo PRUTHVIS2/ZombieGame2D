@@ -12,7 +12,7 @@ public class Projectile extends Entity {
     private float maxDistance;
 
     public Projectile(float x, float y, float dx, float dy, float speed, int damage, float maxDistance) {
-        super(x, y, 4, 4); // Small size for bullet
+        super(x, y, 8, 8); // Larger size for better visibility
         this.dx = dx;
         this.dy = dy;
         this.speed = speed;
@@ -49,7 +49,7 @@ public class Projectile extends Entity {
         // Assuming g is Graphics2D (or wrapping it) - adapting to existing pattern
         if (g instanceof Graphics2D) {
             Graphics2D g2d = (Graphics2D) g;
-            g2d.setColor(Color.YELLOW);
+            g2d.setColor(Color.RED);
             g2d.fillOval((int) x, (int) y, width, height);
         }
     }

@@ -113,8 +113,13 @@ public class GamePanel extends JPanel {
 
         // Draw zombies first (background layer)
         for (Zombie zombie : level.getZombies()) {
-            if (zombie.isAlive()) {
-                drawZombie(g, zombie);
+            drawZombie(g, zombie);
+        }
+
+        // Draw projectiles
+        for (Projectile p : level.getProjectiles()) {
+            if (p.isActive()) {
+                p.render(g);
             }
         }
 

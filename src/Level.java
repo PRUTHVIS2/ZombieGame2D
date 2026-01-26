@@ -53,10 +53,17 @@ public class Level {
         // Update zombies
         for (int i = 0; i < zombies.size(); i++) {
             Zombie zombie = zombies.get(i);
+
+            // Update AI only if alive
             if (zombie.isAlive()) {
                 zombie.updateAI(player, environment, dt);
-                zombie.update(dt);
-            } else {
+            }
+
+            // Always update to let animations progress (even if dead)
+            zombie.update(dt);
+
+            // Remove ONLY if truly dead and animation is done
+            if (!zombie.isAlive() && zombie.isDeathAnimationFinished()) {
                 zombies.remove(i);
                 i--;
             }
@@ -96,9 +103,9 @@ public class Level {
         }
         player.render(g);
         for (Zombie zombie : zombies) {
-            if (zombie.isAlive()) {
-                zombie.render(g);
-            }
+            // Render all zombies, including dead ones, until their death animation is
+            // finished and they are removed.
+            zombie.render(g);
         }
     }
 

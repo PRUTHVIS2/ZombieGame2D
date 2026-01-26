@@ -20,6 +20,8 @@ public class Zombie extends Character {
     private graphics.Animation idleAnim;
     private graphics.Animation moveAnim;
     private graphics.Animation attackAnim;
+    private graphics.Animation hurtAnim;
+    private graphics.Animation deadAnim;
 
     public Zombie(float x, float y, int width, int height, int maxHp, float speed, int attackDamage) {
         super(x, y, width, height, maxHp);
@@ -48,6 +50,18 @@ public class Zombie extends Character {
 
         // Attack Animation (Auto-detect frames)
         attackAnim = loadAnimationFromStrip("assets/skins/zombie/Attack.png", 0, 150);
+
+        // Hurt Animation
+        hurtAnim = loadAnimationFromStrip("assets/skins/zombie/Hurt.png", 0, 100);
+        if (hurtAnim != null) {
+            hurtAnim.setLooping(false);
+        }
+
+        // Death Animation
+        deadAnim = loadAnimationFromStrip("assets/skins/zombie/Dead.png", 0, 100);
+        if (deadAnim != null) {
+            deadAnim.setLooping(false);
+        }
 
         // Initial animation
         if (idleAnim != null) {
@@ -194,11 +208,43 @@ public class Zombie extends Character {
         }
     }
 
+    @Override
+    public void takeDamage(int damage) {
+        if (!alive)
+            return;
+
+        hp -= damage;
+
+        // Trigger Hurt Animation
+        if (hurtAnim != null) {
+            currentAnimation = hurtAnim;
+            currentAnimation.reset();
+        }
+
+        if (hp <= 0) {
+            die();
+        }
+    }
+
     public void die() {
         alive = false;
         state = "dead";
         velocityX = 0;
         velocityY = 0;
+
+        // Trigger Death Animation
+        if (deadAnim != null) {
+            currentAnimation = deadAnim;
+            currentAnimation.reset();
+        }
+    }
+
+    public boolean isDeathAnimationFinished() {
+        if (!state.equals("dead"))
+            return false;
+        if (deadAnim == null)
+            return true;
+        return deadAnim.isFinished();
     }
 
     public float getSpeed() {
@@ -244,8 +290,11 @@ public class Zombie extends Character {
 
     @Override
     public void update(float dt) {
-        if (!alive)
-            return;
+        // Stop movement if dead
+        if (!alive) {
+            velocityX = 0;
+            velocityY = 0;
+        }
 
         // Update position based on velocity
         x += velocityX * dt;
@@ -255,15 +304,20 @@ public class Zombie extends Character {
         attackTimer -= dt;
 
         // Update Animation State
-        if (state.equals("attacking")) {
-            if (attackAnim != null)
-                currentAnimation = attackAnim;
-        } else if (state.equals("moving") || velocityX != 0 || velocityY != 0) {
-            if (moveAnim != null)
-                currentAnimation = moveAnim;
-        } else {
-            if (idleAnim != null)
-                currentAnimation = idleAnim;
+        boolean isHurting = (currentAnimation == hurtAnim && hurtAnim != null && !hurtAnim.isFinished());
+        boolean isDying = (currentAnimation == deadAnim && deadAnim != null && !deadAnim.isFinished());
+
+        if (!isHurting && !isDying) {
+            if (state.equals("attacking")) {
+                if (attackAnim != null)
+                    currentAnimation = attackAnim;
+            } else if (state.equals("moving") || velocityX != 0 || velocityY != 0) {
+                if (moveAnim != null)
+                    currentAnimation = moveAnim;
+            } else {
+                if (idleAnim != null)
+                    currentAnimation = idleAnim;
+            }
         }
 
         super.update(dt);
