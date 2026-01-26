@@ -85,7 +85,7 @@ public class Player extends Character {
         }
 
         // Hurt Animation
-        hurtAnim = loadAnimationFromStrip("assets/skins/zombie/Hurt.png", 0, 100);
+        hurtAnim = loadAnimationFromStrip("assets/skins/player/Hurt.png", 0, 100);
         if (hurtAnim != null) {
             hurtAnim.setLooping(false);
         }
